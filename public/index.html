@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>
+    VNC Demo
+  </title>
+  <style>
+    html, body{
+      margin: 0;
+    }
+    img{
+      width: 100%;
+    }
+  </style>
+
+</head>
+<body>
+  <img src="/screen">
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+  <script>
+
+var img = document.body.getElementsByTagName('img')[0]
+function screen(){
+  setTimeout(function(){
+    img.onload = screen
+    img.src = '/screen'
+  }, 0)
+}
+screen()
+
+var pending = false
+var mouse = { x: 0, y: 0, mask: 0 }
+var mouseStale = false
+window.onmousemove = function(e){
+  mouse.x = e.x
+  mouse.y = e.y
+  mouseStale = true
+}
+
+
+// var mouseDown = [0, 0, 0, 0, 0, 0, 0, 0]
+var mouseDownCount = 0
+window.onmousedown = function(e) {
+  e.preventDefault()
+  if(e.button > 7) return
+  // mouseDown[e.button]++
+  // mouseDownCount++
+  mouse.mask |= Math.pow(2, e.button)
+  mouseStale = true
+}
+window.onmouseup = function(e) {
+  e.preventDefault()
+  if(e.button > 7) return
+  // mouseDown[e.button]--
+  // mouseDownCount--
+  mouse.mask &= ~(1 << e.button )
+  mouseStale = true
+}
+
+function mouseUpdate(){
+  if(mouseStale){
+    console.log('mask', mouse.mask.toString(2))
+    $.ajax({
+      url: '/mouse'
+      , type: 'POST'
+      , data : mouse
+    }).done(done)
+    .error(function(xhr, status, e){ throw e })
+    mouseStale = false
+  }else done()
+  function done(){ setTimeout(mouseUpdate, 10) }
+}
+mouseUpdate()
+
+
+// window.onkeydown = function(e){
+//   e.preventDefault()
+//   console.log(String.fromCharCode(e.keyCode))
+//   $.ajax({
+//     url: '/keydown'
+//     , type: 'POST'
+//     , data: { keyCode: e.keyCode }
+//   })
+// }
+
+// window.onkeyup = function(e){
+//   e.preventDefault()
+//   $.ajax({
+//     url: '/keyup'
+//     , type: 'POST'
+//     , data: { keyCode: e.keyCode }
+//   })
+// }
+
+$(document).keydown(function(e) { 
+  if( e.keyCode === 8 ) e.preventDefault()
+})
+
+$(document).keypress(function(e){
+  // console.log('key press', e.charCode)
+  e.preventDefault()
+  $.ajax({
+    url: '/keydown'
+    , type: 'POST'
+    , data: { keyCode: e.charCode }
+  })
+})
+
+  </script>
+</body>
+</html>
